@@ -8,7 +8,7 @@ fn main() {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Card {
+enum NormalCard {
     Two,
     Three,
     Four,
@@ -41,7 +41,7 @@ enum JokerCard {
     Ace,
 }
 
-impl From<char> for Card {
+impl From<char> for NormalCard {
     fn from(c: char) -> Self {
         match c {
             'A' => Self::Ace,
@@ -94,31 +94,23 @@ enum HandKind {
     FiveOfAKind,
 }
 
+trait Card:
+    From<char> + std::fmt::Debug + std::hash::Hash + Clone + Copy + PartialEq + Eq + PartialOrd + Ord
+{
+}
+
+impl Card for NormalCard {}
+impl Card for JokerCard {}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Hand<T>([T; 5])
 where
-    T: From<char>
-        + std::fmt::Debug
-        + std::hash::Hash
-        + Clone
-        + Copy
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord,
+    T: Card,
     Hand<T>: HandChooser;
 
 impl<T> Ord for Hand<T>
 where
-    T: From<char>
-        + std::fmt::Debug
-        + std::hash::Hash
-        + Clone
-        + Copy
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord,
+    T: Card,
     Hand<T>: HandChooser,
 {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -139,15 +131,7 @@ where
 
 impl<T> PartialOrd for Hand<T>
 where
-    T: From<char>
-        + std::fmt::Debug
-        + std::hash::Hash
-        + Clone
-        + Copy
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord,
+    T: Card,
     Hand<T>: HandChooser,
 {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
@@ -157,15 +141,7 @@ where
 
 impl<T> From<&str> for Hand<T>
 where
-    T: From<char>
-        + std::fmt::Debug
-        + std::hash::Hash
-        + Clone
-        + Copy
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord,
+    T: Card,
     Hand<T>: HandChooser,
 {
     fn from(value: &str) -> Self {
@@ -192,7 +168,7 @@ impl From<Vec<i32>> for HandKind {
     }
 }
 
-impl HandChooser for Hand<Card> {
+impl HandChooser for Hand<NormalCard> {
     fn kind(&self) -> HandKind {
         let buckets = self.0.iter().fold(HashMap::new(), |mut acc, card| {
             *acc.entry(card).or_insert(0) += 1;
@@ -228,15 +204,7 @@ impl HandChooser for Hand<JokerCard> {
 
 fn solve<T>(s: &str) -> u32
 where
-    T: From<char>
-        + std::fmt::Debug
-        + std::hash::Hash
-        + Clone
-        + Copy
-        + PartialEq
-        + Eq
-        + PartialOrd
-        + Ord,
+    T: Card,
     Hand<T>: HandChooser,
 {
     let mut camel: Vec<_> = s
@@ -259,7 +227,7 @@ where
 }
 
 fn solve1(s: &str) -> u32 {
-    solve::<Card>(s)
+    solve::<NormalCard>(s)
 }
 
 fn solve2(s: &str) -> u32 {
