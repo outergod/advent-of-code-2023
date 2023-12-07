@@ -178,16 +178,9 @@ trait HandChooser {
     fn kind(&self) -> HandKind;
 }
 
-impl HandChooser for Hand<Card> {
-    fn kind(&self) -> HandKind {
-        let buckets = self.0.iter().fold(HashMap::new(), |mut acc, card| {
-            *acc.entry(card).or_insert(0) += 1;
-            acc
-        });
-
-        let mut powers: Vec<_> = buckets.values().collect();
-        powers.sort();
-        match powers[..] {
+impl From<Vec<i32>> for HandKind {
+    fn from(value: Vec<i32>) -> Self {
+        match value[..] {
             [5] => HandKind::FiveOfAKind,
             [1, 4] => HandKind::FourOfAKind,
             [2, 3] => HandKind::FullHouse,
@@ -196,6 +189,19 @@ impl HandChooser for Hand<Card> {
             [1, 1, 1, 2] => HandKind::OnePair,
             _ => HandKind::HighCard,
         }
+    }
+}
+
+impl HandChooser for Hand<Card> {
+    fn kind(&self) -> HandKind {
+        let buckets = self.0.iter().fold(HashMap::new(), |mut acc, card| {
+            *acc.entry(card).or_insert(0) += 1;
+            acc
+        });
+
+        let mut powers: Vec<_> = buckets.into_values().collect();
+        powers.sort();
+        powers.into()
     }
 }
 
@@ -216,24 +222,28 @@ impl HandChooser for Hand<JokerCard> {
             powers.push(jokers);
         }
 
-        match powers[..] {
-            [5] => HandKind::FiveOfAKind,
-            [1, 4] => HandKind::FourOfAKind,
-            [2, 3] => HandKind::FullHouse,
-            [1, 1, 3] => HandKind::ThreeOfAKind,
-            [1, 2, 2] => HandKind::TwoPair,
-            [1, 1, 1, 2] => HandKind::OnePair,
-            _ => HandKind::HighCard,
-        }
+        powers.into()
     }
 }
 
-fn solve1(s: &str) -> u32 {
+fn solve<T>(s: &str) -> u32
+where
+    T: From<char>
+        + std::fmt::Debug
+        + std::hash::Hash
+        + Clone
+        + Copy
+        + PartialEq
+        + Eq
+        + PartialOrd
+        + Ord,
+    Hand<T>: HandChooser,
+{
     let mut camel: Vec<_> = s
         .lines()
         .map(|line| {
             let mut fields = line.split_whitespace();
-            let hand: Hand<Card> = fields.next().unwrap().into();
+            let hand: Hand<T> = fields.next().unwrap().into();
             let bid = fields.next().unwrap().parse::<u32>().unwrap();
 
             (hand, bid)
@@ -248,24 +258,12 @@ fn solve1(s: &str) -> u32 {
         .fold(0, |acc, ((_, bid), i)| acc + i * bid)
 }
 
+fn solve1(s: &str) -> u32 {
+    solve::<Card>(s)
+}
+
 fn solve2(s: &str) -> u32 {
-    let mut camel: Vec<_> = s
-        .lines()
-        .map(|line| {
-            let mut fields = line.split_whitespace();
-            let hand: Hand<JokerCard> = fields.next().unwrap().into();
-            let bid = fields.next().unwrap().parse::<u32>().unwrap();
-
-            (hand, bid)
-        })
-        .collect();
-
-    camel.sort_unstable_by_key(|(hand, _)| *hand);
-
-    camel
-        .into_iter()
-        .zip(1..)
-        .fold(0, |acc, ((_, bid), i)| acc + i * bid)
+    solve::<JokerCard>(s)
 }
 
 #[cfg(test)]
